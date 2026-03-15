@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>急速食拉麵 - 柴犬店長挑戰賽</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Noto+Sans+TC', sans-serif;
+            background-color: #f3e5ab; /* 柔和的日式牆壁色 */
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        /* 背景菜單樣式 */
+        .menu-board {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            background: #fdf6e3;
+            border: 2px solid #8b4513;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .progress-bar {
+            transition: width 0.1s ease-out;
+        }
+
+        /* 燙傷震動 */
+        .shake {
+            animation: shake 0.2s infinite;
+        }
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        /* 筷子夾麵動畫 */
+        .chopstick-move {
+            animation: eatAction 0.4s ease-in-out forwards;
+        }
+        @keyframes eatAction {
+            0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+            20% { opacity: 1; }
+            50% { transform: translate(-20px, -100px) rotate(-10deg); }
+            80% { transform: translate(-20px, -100px) scale(0.8); opacity: 1; }
+            100% { transform: translate(-20px, -120px) scale(0.5); opacity: 0; }
+        }
+
+        .steam-animation {
+            animation: steamUp 1.5s infinite;
+        }
+        @keyframes steamUp {
+            0% { transform: translate(-50%, 0) scale(1); opacity: 0; }
+            50% { opacity: 0.6; }
+            100% { transform: translate(-50%, -80px) scale(1.5); opacity: 0; }
+        }
+
+        /* 小狗呼吸動畫 */
+        .dog-breathe {
+            animation: breathe 3s ease-in-out infinite;
+        }
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .btn-active:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <!-- 背景裝飾：日式菜單 -->
+    <div class="fixed top-10 left-10 hidden lg:flex space-x-4">
+        <div class="menu-board p-4 rounded text-brown-800 font-bold">醬油拉麵 - 200元</div>
+        <div class="menu-board p-4 rounded text-brown-800 font-bold">豚骨拉麵 - 250元</div>
+        <div class="menu-board p-4 rounded text-brown-800 font-bold">糖心蛋 - 30元</div>
+    </div>
+    <div class="fixed top-10 right-10 hidden lg:flex space-x-4">
+        <div class="menu-board p-4 rounded text-red-700 font-bold">地獄麻辣 - 280元</div>
+        <div class="menu-board p-4 rounded text-brown-800 font-bold">叉燒加量 - 80元</div>
+    </div>
+
+    <!-- 遊戲主容器 -->
+    <div id="game-container" class="relative w-full max-w-md bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden p-6 border-8 border-amber-700">
+        
+        <!-- 資訊列 -->
+        <div class="flex justify-between items-center mb-4 relative z-10">
+            <div class="bg-red-600 text-white px-4 py-1 rounded-full text-xl font-black">
+                得分: <span id="score">0</span> 碗
+            </div>
+            <div class="bg-gray-800 text-white px-4 py-1 rounded-full text-xl font-black">
+                時間: <span id="timer">30</span>s
+            </div>
+        </div>
+
+        <!-- 遊戲場景區 -->
+        <div class="relative h-72 w-full flex flex-col items-center justify-end mb-4 border-b-4 border-gray-200">
+            <!-- 蒸汽 -->
+            <div id="steam-container" class="steam-animation absolute bottom-32 left-1/2 text-4xl pointer-events-none opacity-0">♨️</div>
+            
+            <!-- 小狗在後面 -->
+            <div id="dog" class="dog-breathe text-8xl absolute bottom-20 z-0 select-none">🐕</div>
+            
+            <!-- 主角嘴巴區域 -->
+            <div id="character" class="text-7xl absolute top-4 z-20 transition-transform">😋</div>
+            <div id="status-text" class="absolute top-24 text-xl font-black text-red-600 opacity-0 bg-white/80 px-2 rounded">太燙了啦！🥵</div>
+
+            <!-- 拉麵碗 -->
+            <div class="relative z-10 text-9xl transform translate-y-4 select-none">
+                🍜
+                <!-- 動態筷子 -->
+                <div id="chopsticks" class="absolute top-0 right-0 text-5xl opacity-0 pointer-events-none">🥢</div>
+            </div>
+        </div>
+
+        <!-- 拉麵進度 -->
+        <div class="mb-4">
+            <div class="flex justify-between text-xs font-bold mb-1 text-gray-600">
+                <span>目前進度</span>
+                <span id="bowl-percent">0%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden border border-gray-300">
+                <div id="bowl-progress" class="progress-bar bg-emerald-500 h-full w-0"></div>
+            </div>
+        </div>
+
+        <!-- 溫度計 -->
+        <div class="mb-6">
+            <div class="flex justify-between text-xs font-bold mb-1 text-gray-600">
+                <span>🔥 溫度 (小心燙舌頭！)</span>
+                <span id="heat-percent">0%</span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-5 overflow-hidden border-2 border-gray-300 relative">
+                <div id="heat-progress" class="progress-bar bg-orange-500 h-full w-0"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-px h-full bg-red-800 absolute left-[80%] opacity-30"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作按鈕 -->
+        <div class="grid grid-cols-2 gap-4">
+            <button id="eat-btn" class="btn-active bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl text-xl font-black shadow-[0_6px_0_0_#991b1b] active:shadow-none active:translate-y-1 transition-all">
+                用力吃！🥢
+            </button>
+            <button id="cool-btn" class="btn-active bg-cyan-500 hover:bg-cyan-600 text-white py-4 rounded-xl text-xl font-black shadow-[0_6px_0_0_#155e75] active:shadow-none active:translate-y-1 transition-all">
+                吹氣 🌬️
+            </button>
+        </div>
+    </div>
+
+    <!-- 開始/結束 覆蓋層 -->
+    <div id="overlay" class="fixed inset-0 bg-stone-900/90 flex flex-col items-center justify-center z-50 text-white text-center p-6">
+        <div class="text-8xl mb-4">🐕🍜</div>
+        <h1 class="text-5xl font-black mb-4 text-yellow-500">急速食拉麵！</h1>
+        <p class="text-lg mb-8 max-w-xs leading-relaxed text-stone-300">
+            柴柴店長煮好了！<br>
+            點擊「用力吃」吞下麵條，但小心別燙傷。<br>
+            燙傷時狂點「吹氣」來恢復！
+        </p>
+        <button id="start-btn" class="bg-yellow-500 hover:bg-yellow-400 text-black px-12 py-4 rounded-full text-3xl font-black shadow-2xl transition-transform hover:scale-105">
+            開動了！
+        </button>
+    </div>
+
+    <!-- 結算彈窗 -->
+    <div id="message-box" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-10 rounded-3xl shadow-2xl text-center hidden z-[60] border-8 border-amber-600 w-80">
+        <div class="text-6xl mb-4">㊗️</div>
+        <p id="message-text" class="text-2xl font-black mb-6 text-stone-800"></p>
+        <button onclick="location.reload()" class="bg-red-600 text-white px-10 py-3 rounded-full font-bold text-xl shadow-lg">再來一碗！</button>
+    </div>
+
+    <script>
+        // 遊戲狀態
+        let score = 0;
+        let timeLeft = 30;
+        let bowlProgress = 0;
+        let heat = 0;
+        let isPlaying = false;
+        let isStunned = false;
+        let gameTimer = null;
+
+        // DOM 元素
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+        const bowlProgressEl = document.getElementById('bowl-progress');
+        const bowlPercentEl = document.getElementById('bowl-percent');
+        const heatProgressEl = document.getElementById('heat-progress');
+        const heatPercentEl = document.getElementById('heat-percent');
+        const characterEl = document.getElementById('character');
+        const dogEl = document.getElementById('dog');
+        const chopsticksEl = document.getElementById('chopsticks');
+        const statusTextEl = document.getElementById('status-text');
+        const steamEl = document.getElementById('steam-container');
+        const eatBtn = document.getElementById('eat-btn');
+        const coolBtn = document.getElementById('cool-btn');
+        const startBtn = document.getElementById('start-btn');
+        const overlay = document.getElementById('overlay');
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+
+        function initGame() {
+            score = 0;
+            timeLeft = 30;
+            bowlProgress = 0;
+            heat = 0;
+            updateUI();
+        }
+
+        function updateUI() {
+            scoreEl.textContent = score;
+            timerEl.textContent = timeLeft;
+            bowlProgressEl.style.width = `${bowlProgress}%`;
+            bowlPercentEl.textContent = `${Math.floor(bowlProgress)}%`;
+            heatProgressEl.style.width = `${heat}%`;
+            heatPercentEl.textContent = `${Math.floor(heat)}%`;
+
+            // 溫度顏色
+            if (heat > 80) {
+                heatProgressEl.classList.replace('bg-orange-500', 'bg-red-600');
+            } else {
+                heatProgressEl.classList.add('bg-orange-500');
+                heatProgressEl.classList.remove('bg-red-600');
+            }
+
+            // 角色與小狗狀態
+            if (isStunned) {
+                characterEl.textContent = '😫';
+                dogEl.textContent = '😮';
+                statusTextEl.style.opacity = '1';
+                characterEl.classList.add('shake');
+            } else {
+                statusTextEl.style.opacity = '0';
+                characterEl.classList.remove('shake');
+                if (heat > 60) {
+                    characterEl.textContent = '🥵';
+                    dogEl.textContent = '💦';
+                } else {
+                    characterEl.textContent = '😋';
+                    dogEl.textContent = '🐕';
+                }
+            }
+
+            // 蒸汽強度
+            steamEl.style.opacity = (heat / 100).toString();
+        }
+
+        function startGame() {
+            initGame();
+            overlay.classList.add('hidden');
+            isPlaying = true;
+            
+            gameTimer = setInterval(() => {
+                timeLeft--;
+                if (timeLeft <= 0) endGame();
+                
+                // 自然降溫
+                if (!isStunned && heat > 0) {
+                    heat = Math.max(0, heat - 2);
+                }
+                updateUI();
+            }, 1000);
+        }
+
+        function endGame() {
+            isPlaying = false;
+            clearInterval(gameTimer);
+            messageText.innerHTML = `完食！<br>你總共吃了<br><span class="text-5xl text-red-600">${score}</span> 碗拉麵`;
+            messageBox.classList.remove('hidden');
+        }
+
+        // 吃拉麵與動畫
+        function eat() {
+            if (!isPlaying || isStunned) return;
+
+            // 觸發筷子動畫
+            chopsticksEl.classList.remove('chopstick-move');
+            void chopsticksEl.offsetWidth; // 觸發重繪以重啟動畫
+            chopsticksEl.classList.add('chopstick-move');
+
+            bowlProgress += 10; 
+            heat += 15; 
+
+            if (heat >= 100) triggerBurn();
+
+            if (bowlProgress >= 100) {
+                score++;
+                bowlProgress = 0;
+                heat = Math.min(heat + 5, 90);
+                // 完食一碗的小動畫
+                characterEl.textContent = '🤩';
+                setTimeout(() => { if(isPlaying && !isStunned) characterEl.textContent = '😋'; }, 500);
+            }
+            updateUI();
+        }
+
+        function coolDown() {
+            if (!isPlaying) return;
+            
+            if (isStunned) {
+                heat = Math.max(0, heat - 12);
+                if (heat < 30) isStunned = false;
+            } else {
+                heat = Math.max(0, heat - 8);
+            }
+            
+            characterEl.textContent = '🌬️';
+            setTimeout(() => { if(isPlaying && !isStunned) characterEl.textContent = '😋'; }, 200);
+            updateUI();
+        }
+
+        function triggerBurn() {
+            isStunned = true;
+            heat = 100;
+            updateUI();
+            
+            let burnEffect = setInterval(() => {
+                if (!isStunned || !isPlaying) {
+                    clearInterval(burnEffect);
+                    return;
+                }
+                heat = Math.max(0, heat - 3);
+                if (heat < 40) {
+                    isStunned = false;
+                    clearInterval(burnEffect);
+                }
+                updateUI();
+            }, 150);
+        }
+
+        // 事件
+        eatBtn.addEventListener('click', eat);
+        coolBtn.addEventListener('click', coolDown);
+        startBtn.addEventListener('click', startGame);
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.key === 'z') eat();
+            if (e.key === 'x') coolDown();
+        });
+    </script>
+</body>
+</html>
